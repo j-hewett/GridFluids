@@ -12,7 +12,6 @@ class GridWidget : public QWidget
     Q_OBJECT
 
 public:
-    // Specify grid dimensions directly
     explicit GridWidget(int rows, int cols, QWidget *parent = nullptr)
         : QWidget(parent)
         , m_rows(rows)
@@ -28,7 +27,6 @@ public:
         setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     }
 
-    // Specify window size + cell size in pixels, grid dimensions are calculated
     GridWidget(int windowW, int windowH, int cellSizePx, QWidget *parent = nullptr)
         : QWidget(parent)
         , m_rows(windowH / cellSizePx)
@@ -124,7 +122,6 @@ protected:
         painter.save();
         painter.translate(offsetX, offsetY);
 
-        // --- Filled cells ---
         const QColor fillColor(63, 216, 216);
         painter.setPen(Qt::NoPen);
         painter.setBrush(fillColor);
@@ -140,8 +137,7 @@ protected:
             }
         }
 
-        // --- Grid lines ---
-        QPen gridPen(QColor(200, 200, 200), 1, Qt::SolidLine);
+        QPen gridPen(QColor(200, 200, 200), 0.1, Qt::SolidLine);
         painter.setPen(gridPen);
         painter.setBrush(Qt::NoBrush);
 

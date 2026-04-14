@@ -45,26 +45,37 @@ struct Particle
 {
     vec2 pos;
     vec2 vel;
+    float radius;
 
     // methods
-    Particle() {}
+    Particle() : radius(0.005) {}
 
     void integrate(float dt, vec2 gravity)
     {
         vel += gravity * dt;
         pos += vel * dt;
 
-        // Quick & dirty wall collision in [0,1]x[0,1]
         const float minX = 0.0f, maxX = 1.0f;
         const float minY = 0.0f, maxY = 1.0f;
 
         const float CoR = 0.9f;
 
-        if (pos.x < minX) { pos.x = minX; vel.x = -vel.x * CoR; }
-        else if (pos.x > maxX) { pos.x = maxX; vel.x = -vel.x * CoR; }
+        if (pos.x < minX)
+        {
+            pos.x = minX + radius; vel.x = -vel.x * CoR;
+        }
+        else if (pos.x > maxX)
+        {
+            pos.x = maxX - radius; vel.x = -vel.x * CoR;
+        }
 
-        if (pos.y < minY) { pos.y = minY; vel.y = -vel.y * CoR; }
-        else if (pos.y > maxY) { pos.y = maxY; vel.y = -vel.y * CoR; }
+        if (pos.y < minY)
+        {
+            pos.y = minY + radius; vel.y = -vel.y * CoR;
+        }
+        else if (pos.y > maxY) {
+            pos.y = maxY - radius; vel.y = -vel.y * CoR;
+        }
     }
 };
 
@@ -96,7 +107,6 @@ private:
     void particles2Grid();
 
 
-// helpers
 private:
     int idxX(int i, int j) const { return i + (size+1)*j; }
     int idxY(int i, int j) const { return i + size*j; }

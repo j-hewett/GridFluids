@@ -67,10 +67,21 @@ void Fluid::particles2Grid()
 
     for (const auto&p : particles)
     {
-        float gridx = p.pos.x / cellSize;
-        float gridy = (p.pos.y / cellSize) - 0.5f;
+        // x
+        float gx = p.pos.x / cellSize;
+        float gy = (p.pos.y / cellSize) - 0.5f;
 
+        int i = static_cast<int>(gx);
+        int j = static_cast<int>(gy);
 
+        //offsets
+        float ox = p.pos.x - gx*cellSize;
+        float oy = p.pos.y - gy*cellSize;
+
+        float w1 = (1 - (ox/cellSize))*(1 - (oy/cellSize));
+        float w2 = ox/cellSize * (1 - (oy/cellSize));
+        float w3 = (1 - (ox/cellSize)) * oy/cellSize;
+        float w4 = ox/cellSize * oy/cellSize;
     }
 }
 
@@ -79,7 +90,7 @@ std::vector<int> Fluid::findFluid(float dt)
     std::fill(gridState.begin(), gridState.end(), 0);
     for(auto& p : particles)
     {
-        vec2 gravity{0.0, 9.81};
+        vec2 gravity{0.0f, 1.5f};
         p.integrate(dt, gravity);
         auto coords = findCell(p);
         size_t col = std::get<0>(coords);
