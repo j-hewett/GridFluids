@@ -21,6 +21,7 @@ Fluid::Fluid(int size, int n_particles)
     weightsY(size*(size+1), 0.0f)
 {
     genParticles();
+    initBoundaries();
 }
 
 
