@@ -65,24 +65,76 @@ void Fluid::particles2Grid()
 {
     clearGrid();
 
-    for (const auto&p : particles)
+    //u component: staggered offset (0, 0.5*cellSize)
+    for (const auto& p : particles)
     {
-        // x
-        float gx = p.pos.x / cellSize;
-        float gy = (p.pos.y / cellSize) - 0.5f;
+        float gx = p.pos.x / cellSize;              // no offset in x
+        float gy = p.pos.y / cellSize - 0.5f;        // offset by half a cell in y
 
-        int i = static_cast<int>(gx);
-        int j = static_cast<int>(gy);
+        int i0 = static_cast<int>(std::floor(gx));
+        int j0 = static_cast<int>(std::floor(gy));
+        int i1 = i0 + 1;
+        int j1 = j0 + 1;
 
-        //offsets
-        float ox = p.pos.x - gx*cellSize;
-        float oy = p.pos.y - gy*cellSize;
+        float tx = gx - i0;
+        float ty = gy - j0;
 
-        float w1 = (1 - (ox/cellSize))*(1 - (oy/cellSize));
-        float w2 = ox/cellSize * (1 - (oy/cellSize));
-        float w3 = (1 - (ox/cellSize)) * oy/cellSize;
-        float w4 = ox/cellSize * oy/cellSize;
+        // clamp to valid u-grid index range: i in [0,size], j in [0,size-1]
+        i0 = clampInt(i0, 0, size);
+        i1 = clampInt(i1, 0, size);
+        j0 = clampInt(j0, 0, size - 1);
+        j1 = clampInt(j1, 0, size - 1);
+
+        float w00 = (1 - tx) * (1 - ty);
+        float w10 = tx * (1 - ty);
+        float w01 = (1 - tx) * ty;
+        float w11 = tx * ty;
+
+        velocitiesX[idxX(i0, j0)] += p.vel.x * w00;  weightsX[idxX(i0, j0)] += w00;
+        velocitiesX[idxX(i1, j0)] += p.vel.x * w10;  weightsX[idxX(i1, j0)] += w10;
+        velocitiesX[idxX(i0, j1)] += p.vel.x * w01;  weightsX[idxX(i0, j1)] += w01;
+        velocitiesX[idxX(i1, j1)] += p.vel.x * w11;  weightsX[idxX(i1, j1)] += w11;
     }
+
+    //v component: staggered offset (0.5*cellSize, 0)
+    for (const auto& p : particles)
+    {
+        float gx = p.pos.x / cellSize - 0.5f;
+        float gy = p.pos.y / cellSize;
+
+        int i0 = static_cast<int>(std::floor(gx));
+        int j0 = static_cast<int>(std::floor(gy));
+        int i1 = i0 + 1;
+        int j1 = j0 + 1;
+
+        float tx = gx - i0;
+        float ty = gy - j0;
+
+        //clamp to valid v-grid index range: i in [0,size-1], j in [0,size]
+        i0 = clampInt(i0, 0, size - 1);
+        i1 = clampInt(i1, 0, size - 1);
+        j0 = clampInt(j0, 0, size);
+        j1 = clampInt(j1, 0, size);
+
+        float w00 = (1 - tx) * (1 - ty);
+        float w10 = tx * (1 - ty);
+        float w01 = (1 - tx) * ty;
+        float w11 = tx * ty;
+
+        velocitiesY[idxY(i0, j0)] += p.vel.y * w00;  weightsY[idxY(i0, j0)] += w00;
+        velocitiesY[idxY(i1, j0)] += p.vel.y * w10;  weightsY[idxY(i1, j0)] += w10;
+        velocitiesY[idxY(i0, j1)] += p.vel.y * w01;  weightsY[idxY(i0, j1)] += w01;
+        velocitiesY[idxY(i1, j1)] += p.vel.y * w11;  weightsY[idxY(i1, j1)] += w11;
+    }
+
+    //normalise by accumulated weight
+    for (size_t idx = 0; idx < velocitiesX.size(); ++idx)
+        if (weightsX[idx] > 0.0f)
+            velocitiesX[idx] /= weightsX[idx];
+
+    for (size_t idx = 0; idx < velocitiesY.size(); ++idx)
+        if (weightsY[idx] > 0.0f)
+            velocitiesY[idx] /= weightsY[idx];
 }
 
 std::vector<int> Fluid::findFluid(float dt)

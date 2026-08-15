@@ -102,7 +102,6 @@ public:
 private:
     void genParticles();
     std::tuple<size_t, size_t> findCell(Particle p);
-
     void clearGrid();
     void particles2Grid();
 
