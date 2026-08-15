@@ -85,11 +85,15 @@ public:
     Fluid(int size, int n_particles);
     float velDivAtCell(int cellX, int cellY);
     std::vector<int> findFluid(float dt);
+
+    enum CellType { SOLID_CELL = 0, AIR_CELL = 1, FLUID_CELL = 2 };
 private:
     void genParticles();
+    void initBoundaries();
     std::tuple<size_t, size_t> findCell(Particle p);
     void clearGrid();
     void particles2Grid();
+    void updateCellType();
 
     int idxX(int i, int j) const { return i + (size+1)*j; }
     int idxY(int i, int j) const { return i + size*j; }
@@ -98,7 +102,8 @@ private:
 private:
     int size;
     float cellSize;
-    std::vector<int> gridState;
+    std::vector<float> s; //float, used in arithmetic during pressure solve
+    std::vector<int> cellType;
     std::vector<Particle> particles;
 
     std::vector<float> velocitiesX, velocitiesY;

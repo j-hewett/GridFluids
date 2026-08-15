@@ -9,8 +9,9 @@ static inline int clampInt(int v, int lo, int hi)
 Fluid::Fluid(int size, int n_particles)
     : size(size),
     cellSize(1.0 / size),
-    gridState(size * size, 0.0),
     particles(n_particles),
+    s(size * size, 1.0f),
+    cellType(size * size, AIR_CELL),
     velocitiesX((size+1) * size, 0.0),
     velocitiesY(size * (size+1), 0.0),
     pressures(size*size, 0.0),
@@ -18,6 +19,32 @@ Fluid::Fluid(int size, int n_particles)
     weightsY(size*(size+1), 0.0f)
 {
     genParticles();
+}
+
+
+void Fluid::genParticles()
+{
+    static std::default_random_engine rng(42);
+    std::uniform_real_distribution<float> dist(0.0, 1.0);
+
+    for (auto& p : particles)
+    {
+        p.pos = vec2(dist(rng), dist(rng));
+        vec2 randVel = vec2((dist(rng)-0.5)*0.5, (dist(rng)-0.5)*0.5);
+        p.vel = randVel;
+    }
+}
+
+void Fluid::initBoundaries()
+{
+    for (int i = 0; i < size; ++i)
+    {
+        for (int j = 0; j < size; ++j)
+        {
+            bool isWall = (i == 0 || i == size - 1 || j == 0 || j == size - 1);
+            s[idxC(i, j)] = isWall ? 0.0f : 1.0f;
+        }
+    }
 }
 
 float Fluid::velDivAtCell(int cellX, int cellY)
@@ -38,19 +65,6 @@ std::tuple<size_t, size_t> Fluid::findCell(Particle p)
 {
     //delicate - explicitly define as tuple
     return {static_cast<size_t>(p.pos.x/cellSize), static_cast<size_t>(p.pos.y/cellSize)};
-}
-
-void Fluid::genParticles()
-{
-    static std::default_random_engine rng(42);
-    std::uniform_real_distribution<float> dist(0.0, 1.0);
-
-    for (auto& p : particles)
-    {
-        p.pos = vec2(dist(rng), dist(rng));
-        vec2 randVel = vec2((dist(rng)-0.5)*0.5, (dist(rng)-0.5)*0.5);
-        p.vel = randVel;
-    }
 }
 
 void Fluid::clearGrid()
@@ -137,19 +151,38 @@ void Fluid::particles2Grid()
             velocitiesY[idx] /= weightsY[idx];
 }
 
-std::vector<int> Fluid::findFluid(float dt)
+void Fluid::updateCellType()
 {
-    std::fill(gridState.begin(), gridState.end(), 0);
-    for(auto& p : particles)
+    for (int i = 0; i < size; ++i)
+        for (int j = 0; j < size; ++j)
+        {
+            cellType[idxC(i, j)] = (s[idxC(i, j)] == 0.0f) ? SOLID_CELL : AIR_CELL;
+        }
+
+    for (const auto& p : particles)
     {
-        vec2 gravity{0.0f, 1.5f};
-        p.integrate(dt, gravity);
         auto coords = findCell(p);
         size_t col = std::get<0>(coords);
         size_t row = std::get<1>(coords);
-
         if (col < static_cast<size_t>(size) && row < static_cast<size_t>(size))
-            gridState[row * size + col] = 1;
+        {
+            int idx = idxC(static_cast<int>(col), static_cast<int>(row));
+            if (cellType[idx] == AIR_CELL)
+            { cellType[idx] = FLUID_CELL; }
+        }
     }
-    return gridState;
+}
+
+std::vector<int> Fluid::findFluid(float dt)
+{
+    for (auto& p : particles)
+    {
+        vec2 gravity{0.0f, 1.5f};
+        p.integrate(dt, gravity);
+    }
+
+    particles2Grid();
+    updateCellType();
+
+    return cellType;
 }
