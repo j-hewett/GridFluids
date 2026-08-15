@@ -49,6 +49,9 @@ void Fluid::initBoundaries()
 
 float Fluid::velDivAtCell(int cellX, int cellY)
 {
+    if (cellType[idxC(cellX, cellY)] != FLUID_CELL)
+        return 0.0f;
+
     float velTop = velocitiesY[idxY(cellX+0, cellY+1)];
     float velLeft = velocitiesX[idxX(cellX+0, cellY+0)];
     float velRight = velocitiesX[idxX(cellX+1, cellY+0)];
@@ -57,8 +60,7 @@ float Fluid::velDivAtCell(int cellX, int cellY)
     float gradX = (velRight - velLeft) / cellSize;
     float gradY = (velTop - velBottom) / cellSize;
 
-    float div = gradX + gradY;
-    return div;
+    return gradX + gradY;
 }
 
 std::tuple<size_t, size_t> Fluid::findCell(Particle p)
@@ -151,6 +153,46 @@ void Fluid::particles2Grid()
             velocitiesY[idx] /= weightsY[idx];
 }
 
+void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
+{
+    std::fill(pressures.begin(), pressures.end(), 0.0f);
+
+    float cp = density * cellSize / dt;
+
+    for (int iter = 0; iter < numPressureIters; ++iter)
+    {
+        for (int i = 1; i < size - 1; ++i)
+        {
+            for (int j = 1; j < size - 1; ++j)
+            {
+                if (cellType[idxC(i, j)] != FLUID_CELL)
+                    continue;
+
+                float sLeft   = s[idxC(i - 1, j)];
+                float sRight  = s[idxC(i + 1, j)];
+                float sBottom = s[idxC(i, j - 1)];
+                float sTop    = s[idxC(i, j + 1)];
+                float sSum = sLeft + sRight + sBottom + sTop;
+
+                if (sSum == 0.0f)
+                    continue;   //fully boxed in by solids, nothing to solve
+
+                float div = velDivAtCell(i, j);
+
+                float p = -div / sSum;
+                p *= overRelaxation;
+
+                pressures[idxC(i, j)] += cp * p;
+
+                //apply correction to the 4 surrounding faces
+                velocitiesX[idxX(i, j)]     -= sLeft   * p;
+                velocitiesX[idxX(i + 1, j)] += sRight  * p;
+                velocitiesY[idxY(i, j)]     -= sBottom * p;
+                velocitiesY[idxY(i, j + 1)] += sTop    * p;
+            }
+        }
+    }
+}
 void Fluid::updateCellType()
 {
     for (int i = 0; i < size; ++i)
@@ -173,6 +215,7 @@ void Fluid::updateCellType()
     }
 }
 
+//poorly named step loop
 std::vector<int> Fluid::findFluid(float dt)
 {
     for (auto& p : particles)
@@ -183,6 +226,7 @@ std::vector<int> Fluid::findFluid(float dt)
 
     particles2Grid();
     updateCellType();
+    solveIncompressibility(dt);
 
     return cellType;
 }
