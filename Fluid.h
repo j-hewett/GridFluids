@@ -83,7 +83,6 @@ class Fluid
 {
 public:
     Fluid(int size, int n_particles);
-    float velDivAtCell(int cellX, int cellY);
     std::vector<int> findFluid(float dt);
 
     enum CellType { SOLID_CELL = 0, AIR_CELL = 1, FLUID_CELL = 2 };
@@ -94,6 +93,9 @@ private:
     void clearGrid();
     void particles2Grid();
     void updateCellType();
+    void solveIncompressibility(float dt);
+
+    float velDivAtCell(int cellX, int cellY);
 
     int idxX(int i, int j) const { return i + (size+1)*j; }
     int idxY(int i, int j) const { return i + size*j; }
@@ -110,4 +112,8 @@ private:
     std::vector<float> weightsX, weightsY;
     std::vector<float> pressures;
     std::vector<float> divergence;
+
+    static constexpr int numPressureIters = 50;
+    static constexpr float overRelaxation = 1.9f;
+    static constexpr float density = 1000.0f;
 };
