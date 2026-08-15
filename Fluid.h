@@ -81,6 +81,20 @@ struct Particle
 
 class Fluid
 {
+public:
+    Fluid(int size, int n_particles);
+    float velDivAtCell(int cellX, int cellY);
+    std::vector<int> findFluid(float dt);
+private:
+    void genParticles();
+    std::tuple<size_t, size_t> findCell(Particle p);
+    void clearGrid();
+    void particles2Grid();
+
+    int idxX(int i, int j) const { return i + (size+1)*j; }
+    int idxY(int i, int j) const { return i + size*j; }
+    int idxC(int i, int j) const { return i + size*j; }
+
 private:
     int size;
     float cellSize;
@@ -91,24 +105,4 @@ private:
     std::vector<float> weightsX, weightsY;
     std::vector<float> pressures;
     std::vector<float> divergence;
-
-
-public:
-    Fluid(int size, int n_particles);
-
-    float velDivAtCell(int cellX, int cellY);
-    std::vector<int> findFluid(float dt);
-
-private:
-    void genParticles();
-    std::tuple<size_t, size_t> findCell(Particle p);
-    void clearGrid();
-    void particles2Grid();
-
-
-private:
-    int idxX(int i, int j) const { return i + (size+1)*j; }
-    int idxY(int i, int j) const { return i + size*j; }
-    int idxC(int i, int j) const { return i + size*j; }
-
 };
