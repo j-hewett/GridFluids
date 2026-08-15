@@ -22,8 +22,11 @@ int main(int argc, char *argv[])
 
     QObject::connect(&timer, &QTimer::timeout, [&]()
     {
-        auto gridState = fluid.findFluid(dt);
-        grid.setCells(gridState);
+        auto cellType = fluid.findFluid(dt);
+        std::vector<int> occupancy(cellType.size());
+        for (size_t i = 0; i < cellType.size(); ++i)
+            occupancy[i] = (cellType[i] == Fluid::FLUID_CELL) ? 1 : 0;
+        grid.setCells(occupancy);
     });
 
     timer.start(1000*dt);
