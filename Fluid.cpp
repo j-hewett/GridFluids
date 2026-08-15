@@ -14,6 +14,8 @@ Fluid::Fluid(int size, int n_particles)
     cellType(size * size, AIR_CELL),
     velocitiesX((size+1) * size, 0.0),
     velocitiesY(size * (size+1), 0.0),
+    preVelocitiesX((size+1) * size, 0.0f),
+    preVelocitiesY(size * (size+1), 0.0f),
     pressures(size*size, 0.0),
     weightsX((size+1)*size, 0.0f),
     weightsY(size*(size+1), 0.0f)
@@ -215,6 +217,66 @@ void Fluid::updateCellType()
     }
 }
 
+void Fluid::grid2Particles()
+{
+    for (auto& p : particles)
+    {
+        //sample u component
+        float gxU = p.pos.x / cellSize;
+        float gyU = p.pos.y / cellSize - 0.5f;
+
+        int i0u = clampInt(static_cast<int>(std::floor(gxU)), 0, size);
+        int j0u = clampInt(static_cast<int>(std::floor(gyU)), 0, size - 1);
+        int i1u = clampInt(i0u + 1, 0, size);
+        int j1u = clampInt(j0u + 1, 0, size - 1);
+
+        float txU = std::min(std::max(gxU - std::floor(gxU), 0.0f), 1.0f);
+        float tyU = std::min(std::max(gyU - std::floor(gyU), 0.0f), 1.0f);
+
+        float w00u = (1 - txU) * (1 - tyU);
+        float w10u = txU * (1 - tyU);
+        float w01u = (1 - txU) * tyU;
+        float w11u = txU * tyU;
+
+        float picU = velocitiesX[idxX(i0u, j0u)] * w00u + velocitiesX[idxX(i1u, j0u)] * w10u
+                     + velocitiesX[idxX(i0u, j1u)] * w01u + velocitiesX[idxX(i1u, j1u)] * w11u;
+
+        float oldU = preVelocitiesX[idxX(i0u, j0u)] * w00u + preVelocitiesX[idxX(i1u, j0u)] * w10u
+                     + preVelocitiesX[idxX(i0u, j1u)] * w01u + preVelocitiesX[idxX(i1u, j1u)] * w11u;
+
+        float flipU = p.vel.x + (picU - oldU);
+
+        //sample v component
+        float gxV = p.pos.x / cellSize - 0.5f;
+        float gyV = p.pos.y / cellSize;
+
+        int i0v = clampInt(static_cast<int>(std::floor(gxV)), 0, size - 1);
+        int j0v = clampInt(static_cast<int>(std::floor(gyV)), 0, size);
+        int i1v = clampInt(i0v + 1, 0, size - 1);
+        int j1v = clampInt(j0v + 1, 0, size);
+
+        float txV = std::min(std::max(gxV - std::floor(gxV), 0.0f), 1.0f);
+        float tyV = std::min(std::max(gyV - std::floor(gyV), 0.0f), 1.0f);
+
+        float w00v = (1 - txV) * (1 - tyV);
+        float w10v = txV * (1 - tyV);
+        float w01v = (1 - txV) * tyV;
+        float w11v = txV * tyV;
+
+        float picV = velocitiesY[idxY(i0v, j0v)] * w00v + velocitiesY[idxY(i1v, j0v)] * w10v
+                     + velocitiesY[idxY(i0v, j1v)] * w01v + velocitiesY[idxY(i1v, j1v)] * w11v;
+
+        float oldV = preVelocitiesY[idxY(i0v, j0v)] * w00v + preVelocitiesY[idxY(i1v, j0v)] * w10v
+                     + preVelocitiesY[idxY(i0v, j1v)] * w01v + preVelocitiesY[idxY(i1v, j1v)] * w11v;
+
+        float flipV = p.vel.y + (picV - oldV);
+
+        //blend
+        p.vel.x = flipRatio * flipU + (1.0f - flipRatio) * picU;
+        p.vel.y = flipRatio * flipV + (1.0f - flipRatio) * picV;
+    }
+}
+
 //poorly named step loop
 std::vector<int> Fluid::findFluid(float dt)
 {
@@ -225,8 +287,13 @@ std::vector<int> Fluid::findFluid(float dt)
     }
 
     particles2Grid();
+
+    preVelocitiesX = velocitiesX;
+    preVelocitiesY = velocitiesY;
+
     updateCellType();
     solveIncompressibility(dt);
+    grid2Particles();
 
     return cellType;
 }
