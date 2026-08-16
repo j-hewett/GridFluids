@@ -63,6 +63,7 @@ private:
     void genParticles();
     void initBoundaries();
     std::tuple<size_t, size_t> findCell(Particle p);
+    void updateParticleDensity();
     void clearGrid();
     void particles2Grid();
     void pushParticlesApart(int numIters);
@@ -96,6 +97,9 @@ private:
     std::vector<float> weightsX, weightsY;
     std::vector<float> pressures;
     std::vector<float> divergence;
+    std::vector<float> particleDensity;
+
+    float particleRestDensity = 0.0f;
 
     //spatial hashing
     float particleSpacing;
@@ -108,5 +112,6 @@ private:
     static constexpr int numPressureIters = 50;
     static constexpr float overRelaxation = 1.9f;
     static constexpr float density = 1000.0f;
+    static constexpr float driftCompensationK = 1.0f;
     float flipRatio = 0.9f;
 };

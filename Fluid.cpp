@@ -19,11 +19,13 @@ Fluid::Fluid(int size, int n_particles)
     prevScatterVelocitiesX((size+1) * size, 0.0f),
     prevScatterVelocitiesY(size * (size+1), 0.0f),
     pressures(size*size, 0.0),
+    particleDensity(size*size, 0.0f),
     weightsX((size+1)*size, 0.0f),
     weightsY(size*(size+1), 0.0f)
 {
     genParticles();
     initBoundaries();
+    particleRestDensity = 3.0f;
 
     //init spatial hash relative to particle diameter
     float r = particles[0].radius;
@@ -231,6 +233,52 @@ std::tuple<size_t, size_t> Fluid::findCell(Particle p)
     return {static_cast<size_t>(col), static_cast<size_t>(row)};
 }
 
+void Fluid::updateParticleDensity()
+{
+    std::fill(particleDensity.begin(), particleDensity.end(), 0.0f);
+
+    float h = cellSize;
+    float h2 = 0.5f * h;
+
+    for (const auto& p : particles)
+    {
+        float x = std::min(std::max(p.pos.x, h), (size - 1) * h);
+        float y = std::min(std::max(p.pos.y, h), (size - 1) * h);
+
+        int x0 = static_cast<int>((x - h2) / h);
+        float tx = ((x - h2) - x0 * h) / h;
+        int x1 = std::min(x0 + 1, size - 2);
+
+        int y0 = static_cast<int>((y - h2) / h);
+        float ty = ((y - h2) - y0 * h) / h;
+        int y1 = std::min(y0 + 1, size - 2);
+
+        float sx = 1.0f - tx;
+        float sy = 1.0f - ty;
+
+        if (x0 < size && y0 < size) particleDensity[idxC(x0, y0)] += sx * sy;
+        if (x1 < size && y0 < size) particleDensity[idxC(x1, y0)] += tx * sy;
+        if (x1 < size && y1 < size) particleDensity[idxC(x1, y1)] += tx * ty;
+        if (x0 < size && y1 < size) particleDensity[idxC(x0, y1)] += sx * ty;
+    }
+
+    // if (particleRestDensity == 0.0f)
+    // {
+    //     float sum = 0.0f;
+    //     int numFluidCells = 0;
+    //     for (int idx = 0; idx < size * size; ++idx)
+    //     {
+    //         if (cellType[idx] == FLUID_CELL)
+    //         {
+    //             sum += particleDensity[idx];
+    //             ++numFluidCells;
+    //         }
+    //     }
+    //     if (numFluidCells > 0)
+    //         particleRestDensity = sum / numFluidCells;
+    // }
+}
+
 void Fluid::clearGrid()
 {
     std::fill(velocitiesX.begin(), velocitiesX.end(), 0.0f);
@@ -366,6 +414,13 @@ void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
                     continue;   //fully boxed in by solids, nothing to solve
 
                 float div = velDivAtCell(i, j);
+
+                if (particleRestDensity > 0.0f)
+                {
+                    float compression = particleDensity[idxC(i, j)] - particleRestDensity;
+                    if (compression > 0.0f)
+                        div -= driftCompensationK * compression;
+                }
 
                 float p = -div / sSum;
                 p *= overRelaxation;
@@ -508,6 +563,7 @@ std::vector<int> Fluid::simulate(float dt)
 
     particles2Grid();
     updateCellType();
+    updateParticleDensity();
     solveIncompressibility(dt);
     grid2Particles();
 
