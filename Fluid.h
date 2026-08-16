@@ -65,6 +65,7 @@ private:
     std::tuple<size_t, size_t> findCell(Particle p);
     void clearGrid();
     void particles2Grid();
+    void pushParticlesApart(int numIters);
     void updateCellType();
     void solveIncompressibility(float dt);
     void grid2Particles();
@@ -95,6 +96,14 @@ private:
     std::vector<float> weightsX, weightsY;
     std::vector<float> pressures;
     std::vector<float> divergence;
+
+    //spatial hashing
+    float particleSpacing;
+    int pNumX, pNumY, pNumCells;
+    std::vector<int> numCellParticles;
+    std::vector<int> firstCellParticle;
+    std::vector<int> cellParticleIds;
+    static constexpr int numParticleIters = 2;
 
     static constexpr int numPressureIters = 50;
     static constexpr float overRelaxation = 1.9f;
