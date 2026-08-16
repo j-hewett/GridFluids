@@ -115,8 +115,8 @@ float Fluid::velDivAtCell(int cellX, int cellY)
     float velRight = velocitiesX[idxX(cellX+1, cellY+0)];
     float velBottom = velocitiesY[idxY(cellX+0, cellY+0)];
 
-    float gradX = (velRight - velLeft) / cellSize;
-    float gradY = (velTop - velBottom) / cellSize;
+    float gradX = (velRight - velLeft);
+    float gradY = (velTop - velBottom);
 
     return gradX + gradY;
 }
