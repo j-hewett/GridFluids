@@ -71,6 +71,9 @@ private:
     void integrateParticles(float dt, vec2 gravity);
     void handleParticleCollisions();
 
+    bool isUFaceValid(int i, int j) const;
+    bool isVFaceValid(int i, int j) const;
+
     float velDivAtCell(int cellX, int cellY);
     float sampleGrid(const std::vector<float>& grid, float gx, float gy,
                      int iMax, int jMax) const;

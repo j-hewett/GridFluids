@@ -93,6 +93,24 @@ void Fluid::initBoundaries()
     }
 }
 
+//returns true if this u-face (i,j) is adjacent to at least one non-air cell
+bool Fluid::isUFaceValid(int i, int j) const
+{
+    bool valid = false;
+    if (i <= size - 1) valid = valid || (cellType[idxC(i, j)] != AIR_CELL);
+    if (i >= 1)         valid = valid || (cellType[idxC(i - 1, j)] != AIR_CELL);
+    return valid;
+}
+
+//returns true if this v-face (i,j) is adjacent to at least one non-air cell
+bool Fluid::isVFaceValid(int i, int j) const
+{
+    bool valid = false;
+    if (j <= size - 1) valid = valid || (cellType[idxC(i, j)] != AIR_CELL);
+    if (j >= 1)         valid = valid || (cellType[idxC(i, j - 1)] != AIR_CELL);
+    return valid;
+}
+
 float Fluid::velDivAtCell(int cellX, int cellY)
 {
     if (cellType[idxC(cellX, cellY)] != FLUID_CELL)
