@@ -49,34 +49,6 @@ struct Particle
 
     // methods
     Particle() : radius(0.005) {}
-
-    void integrate(float dt, vec2 gravity)
-    {
-        vel += gravity * dt;
-        pos += vel * dt;
-
-        const float minX = 0.0f, maxX = 1.0f;
-        const float minY = 0.0f, maxY = 1.0f;
-
-        const float CoR = 0.9f;
-
-        if (pos.x < minX)
-        {
-            pos.x = minX + radius; vel.x = -vel.x * CoR;
-        }
-        else if (pos.x > maxX)
-        {
-            pos.x = maxX - radius; vel.x = -vel.x * CoR;
-        }
-
-        if (pos.y < minY)
-        {
-            pos.y = minY + radius; vel.y = -vel.y * CoR;
-        }
-        else if (pos.y > maxY) {
-            pos.y = maxY - radius; vel.y = -vel.y * CoR;
-        }
-    }
 };
 
 class Fluid
@@ -96,6 +68,8 @@ private:
     void updateCellType();
     void solveIncompressibility(float dt);
     void grid2Particles();
+    void integrateParticles(float dt, vec2 gravity);
+    void handleParticleCollisions();
 
     float velDivAtCell(int cellX, int cellY);
     float sampleGrid(const std::vector<float>& grid, float gx, float gy,
@@ -113,6 +87,7 @@ private:
     std::vector<Particle> particles;
 
     std::vector<float> preVelocitiesX, preVelocitiesY;
+    std::vector<float> prevScatterVelocitiesX, prevScatterVelocitiesY;
     std::vector<float> velocitiesX, velocitiesY;
     std::vector<float> weightsX, weightsY;
     std::vector<float> pressures;

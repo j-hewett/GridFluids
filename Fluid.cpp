@@ -16,6 +16,8 @@ Fluid::Fluid(int size, int n_particles)
     velocitiesY(size * (size+1), 0.0),
     preVelocitiesX((size+1) * size, 0.0f),
     preVelocitiesY(size * (size+1), 0.0f),
+    prevScatterVelocitiesX((size+1) * size, 0.0f),
+    prevScatterVelocitiesY(size * (size+1), 0.0f),
     pressures(size*size, 0.0),
     weightsX((size+1)*size, 0.0f),
     weightsY(size*(size+1), 0.0f)
@@ -35,6 +37,47 @@ void Fluid::genParticles()
         p.pos = vec2(dist(rng), dist(rng));
         vec2 randVel = vec2((dist(rng)-0.5)*0.5, (dist(rng)-0.5)*0.5);
         p.vel = randVel;
+    }
+}
+
+void Fluid::integrateParticles(float dt, vec2 gravity)
+{
+    for (auto& p : particles)
+    {
+        p.vel += gravity * dt;
+        p.pos += p.vel * dt;
+    }
+}
+
+void Fluid::handleParticleCollisions()
+{
+    const float minX = 0.0f, maxX = 1.0f;
+    const float minY = 0.0f, maxY = 1.0f;
+    const float CoR = 0.9f;
+
+    for (auto& p : particles)
+    {
+        if (p.pos.x < minX + p.radius)
+        {
+            p.pos.x = minX + p.radius;
+            p.vel.x = 0;
+        }
+        else if (p.pos.x > maxX - p.radius)
+        {
+            p.pos.x = maxX - p.radius;
+            p.vel.x = 0;
+        }
+
+        if (p.pos.y < minY + p.radius)
+        {
+            p.pos.y = minY + p.radius;
+            p.vel.y = 0;
+        }
+        else if (p.pos.y > maxY - p.radius)
+        {
+            p.pos.y = maxY - p.radius;
+            p.vel.y = 0;
+        }
     }
 }
 
@@ -154,6 +197,29 @@ void Fluid::particles2Grid()
     for (size_t idx = 0; idx < velocitiesY.size(); ++idx)
         if (weightsY[idx] > 0.0f)
             velocitiesY[idx] /= weightsY[idx];
+
+    //restore velocity on faces touching solid cells
+    for (int i = 0; i <= size; ++i)
+    {
+        for (int j = 0; j < size; ++j)
+        {
+            bool solidRight = (i <= size - 1) ? (s[idxC(i, j)] == 0.0f) : true;
+            bool solidLeft  = (i >= 1)        ? (s[idxC(i - 1, j)] == 0.0f) : true;
+            if (solidLeft || solidRight)
+                velocitiesX[idxX(i, j)] = prevScatterVelocitiesX[idxX(i, j)];
+        }
+    }
+
+    for (int i = 0; i < size; ++i)
+    {
+        for (int j = 0; j <= size; ++j)
+        {
+            bool solidTop    = (j <= size - 1) ? (s[idxC(i, j)] == 0.0f) : true;
+            bool solidBottom = (j >= 1)        ? (s[idxC(i, j - 1)] == 0.0f) : true;
+            if (solidTop || solidBottom)
+                velocitiesY[idxY(i, j)] = prevScatterVelocitiesY[idxY(i, j)];
+        }
+    }
 }
 
 void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
@@ -283,11 +349,9 @@ void Fluid::grid2Particles()
 
 std::vector<int> Fluid::simulate(float dt)
 {
-    for (auto& p : particles)
-    {
-        vec2 gravity{0.0f, 1.5f};
-        p.integrate(dt, gravity);
-    }
+    vec2 gravity = {0.0, -1.5f};
+    integrateParticles(dt, gravity);
+    handleParticleCollisions();
 
     particles2Grid();
 

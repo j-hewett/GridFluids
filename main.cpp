@@ -15,14 +15,14 @@ int main(int argc, char *argv[])
     grid.resize(800,800);
     grid.show();
 
-    Fluid fluid(gridSize, 5000);
+    Fluid fluid(gridSize, 10);
 
     QTimer timer;
     float dt = 1.0f/60.0f;
 
     QObject::connect(&timer, &QTimer::timeout, [&]()
     {
-        auto cellType = fluid.findFluid(dt);
+        auto cellType = fluid.simulate(dt);
         std::vector<int> occupancy(cellType.size());
         for (size_t i = 0; i < cellType.size(); ++i)
             occupancy[i] = (cellType[i] == Fluid::FLUID_CELL) ? 1 : 0;
