@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
     grid.resize(800,800);
     grid.show();
 
-    Fluid fluid(gridSize, 10);
+    Fluid fluid(gridSize, 1000);
 
     QTimer timer;
     float dt = 1.0f/60.0f;

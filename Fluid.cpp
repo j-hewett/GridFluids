@@ -30,7 +30,7 @@ Fluid::Fluid(int size, int n_particles)
 void Fluid::genParticles()
 {
     static std::default_random_engine rng(42);
-    std::uniform_real_distribution<float> dist(0.0, 1.0);
+    std::uniform_real_distribution<float> dist(cellSize + 0.005f, 1.0f - cellSize - 0.005f);
 
     for (auto& p : particles)
     {
