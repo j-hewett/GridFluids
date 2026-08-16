@@ -117,8 +117,9 @@ float Fluid::velDivAtCell(int cellX, int cellY)
 
 std::tuple<size_t, size_t> Fluid::findCell(Particle p)
 {
-    //delicate - explicitly define as tuple
-    return {static_cast<size_t>(p.pos.x/cellSize), static_cast<size_t>(p.pos.y/cellSize)};
+    int col = clampInt(static_cast<int>(p.pos.x / cellSize), 0, size - 1);
+    int row = clampInt(static_cast<int>(p.pos.y / cellSize), 0, size - 1);
+    return {static_cast<size_t>(col), static_cast<size_t>(row)};
 }
 
 void Fluid::clearGrid()
