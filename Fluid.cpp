@@ -56,6 +56,12 @@ void Fluid::handleParticleCollisions()
 
     for (auto& p : particles)
     {
+        if (!std::isfinite(p.pos.x) || !std::isfinite(p.pos.y) ||
+            !std::isfinite(p.vel.x) || !std::isfinite(p.vel.y))
+        {
+            p.pos = vec2(0.5f, 0.5f);
+            p.vel = vec2(0.0f, 0.0f);
+        }
         const float minX = wallMinX + p.radius;
         const float maxX = wallMaxX - p.radius;
         const float minY = wallMinY + p.radius;
