@@ -277,6 +277,10 @@ void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
             }
         }
     }
+
+    const float maxVel = 10.0f * cellSize / dt; // ~10 cells/frame ceiling
+    for (auto& v : velocitiesX) v = std::clamp(v, -maxVel, maxVel);
+    for (auto& v : velocitiesY) v = std::clamp(v, -maxVel, maxVel);
 }
 void Fluid::updateCellType()
 {
