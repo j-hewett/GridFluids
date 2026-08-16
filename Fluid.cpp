@@ -51,33 +51,21 @@ void Fluid::integrateParticles(float dt, vec2 gravity)
 
 void Fluid::handleParticleCollisions()
 {
-    const float minX = 0.0f, maxX = 1.0f;
-    const float minY = 0.0f, maxY = 1.0f;
-    const float CoR = 0.9f;
+    const float wallMinX = cellSize, wallMaxX = 1.0f - cellSize;
+    const float wallMinY = cellSize, wallMaxY = 1.0f - cellSize;
 
     for (auto& p : particles)
     {
-        if (p.pos.x < minX + p.radius)
-        {
-            p.pos.x = minX + p.radius;
-            p.vel.x = 0;
-        }
-        else if (p.pos.x > maxX - p.radius)
-        {
-            p.pos.x = maxX - p.radius;
-            p.vel.x = 0;
-        }
+        const float minX = wallMinX + p.radius;
+        const float maxX = wallMaxX - p.radius;
+        const float minY = wallMinY + p.radius;
+        const float maxY = wallMaxY - p.radius;
 
-        if (p.pos.y < minY + p.radius)
-        {
-            p.pos.y = minY + p.radius;
-            p.vel.y = 0;
-        }
-        else if (p.pos.y > maxY - p.radius)
-        {
-            p.pos.y = maxY - p.radius;
-            p.vel.y = 0;
-        }
+        if (p.pos.x < minX)      { p.pos.x = minX; p.vel.x = 0; }
+        else if (p.pos.x > maxX) { p.pos.x = maxX; p.vel.x = 0; }
+
+        if (p.pos.y < minY)      { p.pos.y = minY; p.vel.y = 0; }
+        else if (p.pos.y > maxY) { p.pos.y = maxY; p.vel.y = 0; }
     }
 }
 
