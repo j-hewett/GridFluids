@@ -24,6 +24,18 @@ Fluid::Fluid(int size, int n_particles)
 {
     genParticles();
     initBoundaries();
+
+    //init spatial hash relative to particle diameter
+    float r = particles[0].radius;
+    particleSpacing = 2.2f * r;
+    float pInvSpacing = 1.0f / particleSpacing;
+    pNumX = static_cast<int>(1.0f * pInvSpacing) + 1;
+    pNumY = static_cast<int>(1.0f * pInvSpacing) + 1;
+    pNumCells = pNumX * pNumY;
+
+    numCellParticles.assign(pNumCells, 0);
+    firstCellParticle.assign(pNumCells + 1, 0);
+    cellParticleIds.assign(particles.size(), 0);
 }
 
 
@@ -72,6 +84,97 @@ void Fluid::handleParticleCollisions()
 
         if (p.pos.y < minY)      { p.pos.y = minY; p.vel.y = 0; }
         else if (p.pos.y > maxY) { p.pos.y = maxY; p.vel.y = 0; }
+    }
+}
+
+void Fluid::pushParticlesApart(int numIters)
+{
+    float pInvSpacing = 1.0f / particleSpacing;
+
+    // count particles per hash cell
+    std::fill(numCellParticles.begin(), numCellParticles.end(), 0);
+
+    for (const auto& p : particles)
+    {
+        int xi = clampInt(static_cast<int>(p.pos.x * pInvSpacing), 0, pNumX - 1);
+        int yi = clampInt(static_cast<int>(p.pos.y * pInvSpacing), 0, pNumY - 1);
+        numCellParticles[xi * pNumY + yi]++;
+    }
+
+    // partial sums -> firstCellParticle
+    int first = 0;
+    for (int i = 0; i < pNumCells; ++i)
+    {
+        first += numCellParticles[i];
+        firstCellParticle[i] = first;
+    }
+    firstCellParticle[pNumCells] = first;
+
+    // fill particle ids into cells
+    for (size_t i = 0; i < particles.size(); ++i)
+    {
+        const auto& p = particles[i];
+        int xi = clampInt(static_cast<int>(p.pos.x * pInvSpacing), 0, pNumX - 1);
+        int yi = clampInt(static_cast<int>(p.pos.y * pInvSpacing), 0, pNumY - 1);
+        int cellNr = xi * pNumY + yi;
+        firstCellParticle[cellNr]--;
+        cellParticleIds[firstCellParticle[cellNr]] = static_cast<int>(i);
+    }
+
+    // push apart
+    float minDist = 2.0f * particles[0].radius;
+    float minDist2 = minDist * minDist;
+
+    for (int iter = 0; iter < numIters; ++iter)
+    {
+        for (size_t i = 0; i < particles.size(); ++i)
+        {
+            float px = particles[i].pos.x;
+            float py = particles[i].pos.y;
+
+            int pxi = static_cast<int>(px * pInvSpacing);
+            int pyi = static_cast<int>(py * pInvSpacing);
+            int x0 = std::max(pxi - 1, 0);
+            int y0 = std::max(pyi - 1, 0);
+            int x1 = std::min(pxi + 1, pNumX - 1);
+            int y1 = std::min(pyi + 1, pNumY - 1);
+
+            for (int xi = x0; xi <= x1; ++xi)
+            {
+                for (int yi = y0; yi <= y1; ++yi)
+                {
+                    int cellNr = xi * pNumY + yi;
+                    int first = firstCellParticle[cellNr];
+                    int last = firstCellParticle[cellNr + 1];
+
+                    for (int j = first; j < last; ++j)
+                    {
+                        int id = cellParticleIds[j];
+                        if (id == static_cast<int>(i))
+                            continue;
+
+                        float qx = particles[id].pos.x;
+                        float qy = particles[id].pos.y;
+
+                        float dx = qx - px;
+                        float dy = qy - py;
+                        float d2 = dx * dx + dy * dy;
+                        if (d2 > minDist2 || d2 == 0.0f)
+                            continue;
+
+                        float d = std::sqrt(d2);
+                        float s = 0.5f * (minDist - d) / d;
+                        dx *= s;
+                        dy *= s;
+
+                        particles[i].pos.x  -= dx;
+                        particles[i].pos.y  -= dy;
+                        particles[id].pos.x += dx;
+                        particles[id].pos.y += dy;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -400,6 +503,7 @@ std::vector<int> Fluid::simulate(float dt)
 {
     vec2 gravity = {0.0, 1.5f};
     integrateParticles(dt, gravity);
+    pushParticlesApart(numParticleIters);
     handleParticleCollisions();
 
     particles2Grid();
