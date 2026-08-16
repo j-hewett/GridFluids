@@ -326,13 +326,29 @@ void Fluid::grid2Particles()
         float w01u = (1 - txU) * tyU;
         float w11u = txU * tyU;
 
-        float picU = velocitiesX[idxX(i0u, j0u)] * w00u + velocitiesX[idxX(i1u, j0u)] * w10u
-                     + velocitiesX[idxX(i0u, j1u)] * w01u + velocitiesX[idxX(i1u, j1u)] * w11u;
+        float v00 = isUFaceValid(i0u, j0u) ? 1.0f : 0.0f;
+        float v10 = isUFaceValid(i1u, j0u) ? 1.0f : 0.0f;
+        float v01 = isUFaceValid(i0u, j1u) ? 1.0f : 0.0f;
+        float v11 = isUFaceValid(i1u, j1u) ? 1.0f : 0.0f;
 
-        float oldU = preVelocitiesX[idxX(i0u, j0u)] * w00u + preVelocitiesX[idxX(i1u, j0u)] * w10u
-                     + preVelocitiesX[idxX(i0u, j1u)] * w01u + preVelocitiesX[idxX(i1u, j1u)] * w11u;
+        float wSumU = v00*w00u + v10*w10u + v01*w01u + v11*w11u;
 
-        float flipU = p.vel.x + (picU - oldU);
+        float flipU;
+        float picU = p.vel.x;
+        if (wSumU > 0.0f)
+        {
+            picU = (v00*w00u*velocitiesX[idxX(i0u,j0u)] + v10*w10u*velocitiesX[idxX(i1u,j0u)]
+                          + v01*w01u*velocitiesX[idxX(i0u,j1u)] + v11*w11u*velocitiesX[idxX(i1u,j1u)]) / wSumU;
+
+            float oldU = (v00*w00u*preVelocitiesX[idxX(i0u,j0u)] + v10*w10u*preVelocitiesX[idxX(i1u,j0u)]
+                          + v01*w01u*preVelocitiesX[idxX(i0u,j1u)] + v11*w11u*preVelocitiesX[idxX(i1u,j1u)]) / wSumU;
+
+            flipU = p.vel.x + (picU - oldU);
+        }
+        else
+        {
+            flipU = p.vel.x;
+        }
 
         //sample v component
         float gxV = p.pos.x / cellSize - 0.5f;
@@ -351,13 +367,29 @@ void Fluid::grid2Particles()
         float w01v = (1 - txV) * tyV;
         float w11v = txV * tyV;
 
-        float picV = velocitiesY[idxY(i0v, j0v)] * w00v + velocitiesY[idxY(i1v, j0v)] * w10v
-                     + velocitiesY[idxY(i0v, j1v)] * w01v + velocitiesY[idxY(i1v, j1v)] * w11v;
+        float u00 = isVFaceValid(i0v, j0v) ? 1.0f : 0.0f;
+        float u10 = isVFaceValid(i1v, j0v) ? 1.0f : 0.0f;
+        float u01 = isVFaceValid(i0v, j1v) ? 1.0f : 0.0f;
+        float u11 = isVFaceValid(i1v, j1v) ? 1.0f : 0.0f;
 
-        float oldV = preVelocitiesY[idxY(i0v, j0v)] * w00v + preVelocitiesY[idxY(i1v, j0v)] * w10v
-                     + preVelocitiesY[idxY(i0v, j1v)] * w01v + preVelocitiesY[idxY(i1v, j1v)] * w11v;
+        float wSumV = u00*w00v + u10*w10v + u01*w01v + u11*w11v;
 
-        float flipV = p.vel.y + (picV - oldV);
+        float flipV;
+        float picV = p.vel.y;
+        if (wSumV > 0.0f)
+        {
+            picV = (u00*w00v*velocitiesY[idxY(i0v,j0v)] + u10*w10v*velocitiesY[idxY(i1v,j0v)]
+                          + u01*w01v*velocitiesY[idxY(i0v,j1v)] + u11*w11v*velocitiesY[idxY(i1v,j1v)]) / wSumV;
+
+            float oldV = (u00*w00v*preVelocitiesY[idxY(i0v,j0v)] + u10*w10v*preVelocitiesY[idxY(i1v,j0v)]
+                          + u01*w01v*preVelocitiesY[idxY(i0v,j1v)] + u11*w11v*preVelocitiesY[idxY(i1v,j1v)]) / wSumV;
+
+            flipV = p.vel.y + (picV - oldV);
+        }
+        else
+        {
+            flipV = p.vel.y;
+        }
 
         //blend
         p.vel.x = flipRatio * flipU + (1.0f - flipRatio) * picU;
@@ -372,7 +404,6 @@ std::vector<int> Fluid::simulate(float dt)
     handleParticleCollisions();
 
     particles2Grid();
-
     updateCellType();
     solveIncompressibility(dt);
     grid2Particles();
