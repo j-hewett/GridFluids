@@ -398,7 +398,7 @@ void Fluid::grid2Particles()
 
 std::vector<int> Fluid::simulate(float dt)
 {
-    vec2 gravity = {0.0, -1.5f};
+    vec2 gravity = {0.0, 1.5f};
     integrateParticles(dt, gravity);
     handleParticleCollisions();
 

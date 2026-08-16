@@ -97,7 +97,7 @@ private:
     std::vector<float> divergence;
 
     static constexpr int numPressureIters = 50;
-    static constexpr float overRelaxation = 1.0f;
+    static constexpr float overRelaxation = 1.9f;
     static constexpr float density = 1000.0f;
     float flipRatio = 0.9f;
 };

@@ -8,17 +8,17 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    int gridSize = 40;
+    int gridSize = 60;
 
     GridWidget grid(gridSize, gridSize);
     grid.setWindowTitle("Fluid");
     grid.resize(800,800);
     grid.show();
 
-    Fluid fluid(gridSize, 1000);
+    Fluid fluid(gridSize, 3000);
 
     QTimer timer;
-    float dt = 1.0f/60.0f;
+    float dt = 1.0f/120.0f;
 
     QObject::connect(&timer, &QTimer::timeout, [&]()
     {
