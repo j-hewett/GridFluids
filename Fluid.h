@@ -83,7 +83,7 @@ class Fluid
 {
 public:
     Fluid(int size, int n_particles);
-    std::vector<int> findFluid(float dt);
+    std::vector<int> simulate(float dt);
 
     enum CellType { SOLID_CELL = 0, AIR_CELL = 1, FLUID_CELL = 2 };
 

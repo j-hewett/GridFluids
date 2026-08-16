@@ -279,7 +279,7 @@ void Fluid::grid2Particles()
 }
 
 //poorly named step loop
-std::vector<int> Fluid::findFluid(float dt)
+std::vector<int> Fluid::simulate(float dt)
 {
     for (auto& p : particles)
     {
