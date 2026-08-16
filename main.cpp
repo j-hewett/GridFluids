@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     Fluid fluid(gridSize, 3000);
 
     QTimer timer;
-    float dt = 1.0f/120.0f;
+    float dt = 1.0f/60.0f;
 
     QObject::connect(&timer, &QTimer::timeout, [&]()
     {
