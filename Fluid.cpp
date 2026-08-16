@@ -160,6 +160,9 @@ void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
 {
     std::fill(pressures.begin(), pressures.end(), 0.0f);
 
+    preVelocitiesX = velocitiesX;
+    preVelocitiesY = velocitiesY;
+
     float cp = density * cellSize / dt;
 
     for (int iter = 0; iter < numPressureIters; ++iter)
@@ -278,7 +281,6 @@ void Fluid::grid2Particles()
     }
 }
 
-//poorly named step loop
 std::vector<int> Fluid::simulate(float dt)
 {
     for (auto& p : particles)
@@ -288,9 +290,6 @@ std::vector<int> Fluid::simulate(float dt)
     }
 
     particles2Grid();
-
-    preVelocitiesX = velocitiesX;
-    preVelocitiesY = velocitiesY;
 
     updateCellType();
     solveIncompressibility(dt);
