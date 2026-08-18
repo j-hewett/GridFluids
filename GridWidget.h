@@ -122,7 +122,7 @@ protected:
         painter.save();
         painter.translate(offsetX, offsetY);
 
-        const QColor fillColor(63, 216, 216);
+        const QColor fillColor(63, 200, 216);
         painter.setPen(Qt::NoPen);
         painter.setBrush(fillColor);
 
