@@ -10,7 +10,6 @@ Fluid::Fluid(int size, int n_particles)
     :   n_particles(n_particles),
     size(size),
     cellSize(1.0 / size),
-    particles(n_particles), //for deletion
     s(size * size, 1.0f),
     cellType(size * size, AIR_CELL),
 
@@ -84,11 +83,16 @@ void Fluid::genParticles()
 
 void Fluid::integrateParticles(float dt, float gravity)
 {
+    float* __restrict velY = pVelY.data();
+    float* __restrict posX = pPosX.data();
+    float* __restrict posY = pPosY.data();
+    float* __restrict velX = pVelX.data();
+
     for (int i = 0;i<n_particles; i++)
     {
-        pVelY[i] += gravity * dt;
-        pPosX[i] += pVelX[i] * dt;
-        pPosY[i] += pVelY[i] * dt;
+        velY[i] += gravity * dt;
+        posX[i] += velX[i] * dt;
+        posY[i] += velY[i] * dt;
     }
 }
 

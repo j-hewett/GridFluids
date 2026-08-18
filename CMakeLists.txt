@@ -20,3 +20,7 @@ target_link_libraries(GridFluids PRIVATE Qt6::Widgets)
 set_target_properties(GridFluids PROPERTIES
     WIN32_EXECUTABLE ON
 )
+
+if(MSVC)
+    target_compile_options(GridFluids PRIVATE $<$<CONFIG:Release>:/O2 /arch:AVX2 /fp:fast /Qvec-report:2>)
+endif()

@@ -3,54 +3,6 @@
 #include <vector>
 #include <tuple>
 
-struct vec2
-{
-    float x, y;
-
-    vec2(float x = 0.0, float y = 0.0) : x(x), y(y) {}
-
-    vec2 operator+(const vec2& other) const
-    {
-        return vec2(x + other.x, y + other.y);
-    }
-    vec2& operator+=(const vec2& other)
-    {
-        x += other.x;
-        y += other.y;
-        return *this;
-    }
-
-    vec2 operator-(const vec2& other) const
-    {
-        return vec2(x - other.x, y - other.y);
-    }
-    vec2 operator-=(const vec2& other)
-    {
-        x -= other.x;
-        y -= other.y;
-        return *this;
-    }
-
-    vec2 operator*(const float s) const
-    {
-        return vec2(x * s, y * s);
-    }
-    vec2 operator*(const int s) const
-    {
-        return vec2(x * s, y * s);
-    }
-};
-
-struct Particle
-{
-    vec2 pos;
-    vec2 vel;
-    float radius;
-
-    // methods
-    Particle() : radius(0.005) {}
-};
-
 class Fluid
 {
 public:
