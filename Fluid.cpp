@@ -416,7 +416,7 @@ void Fluid::particles2Grid()
     }
 }
 
-void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
+void Fluid::solveIncompressibility(float dt)
 {
     std::fill(pressures.begin(), pressures.end(), 0.0f);
 
@@ -425,48 +425,54 @@ void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
 
     float cp = density * cellSize / dt;
 
+    // color: 0 = red (i+j even), 1 = black (i+j odd)
     for (int iter = 0; iter < numPressureIters; ++iter)
     {
-        for (int i = 1; i < size - 1; ++i)
+        for (int color = 0; color < 2; ++color)
         {
-            for (int j = 1; j < size - 1; ++j)
+            for (int i = 1; i < size - 1; ++i)
             {
-                if (cellType[idxC(i, j)] != FLUID_CELL)
-                    continue;
+                // start j so that (i+j) matches this color, then step by 2
+                int jStart = 1 + ((i + 1 + color) % 2);
 
-                float sLeft   = s[idxC(i - 1, j)];
-                float sRight  = s[idxC(i + 1, j)];
-                float sBottom = s[idxC(i, j - 1)];
-                float sTop    = s[idxC(i, j + 1)];
-                float sSum = sLeft + sRight + sBottom + sTop;
-
-                if (sSum == 0.0f)
-                    continue;   //fully boxed in by solids, nothing to solve
-
-                float div = velDivAtCell(i, j);
-
-                if (particleRestDensity > 0.0f)
+                for (int j = jStart; j < size - 1; j += 2)
                 {
-                    float compression = particleDensity[idxC(i, j)] - particleRestDensity;
-                    if (compression > 0.0f)
-                        div -= driftCompensationK * compression;
+                    if (cellType[idxC(i, j)] != FLUID_CELL)
+                        continue;
+
+                    float sLeft   = s[idxC(i - 1, j)];
+                    float sRight  = s[idxC(i + 1, j)];
+                    float sBottom = s[idxC(i, j - 1)];
+                    float sTop    = s[idxC(i, j + 1)];
+                    float sSum = sLeft + sRight + sBottom + sTop;
+
+                    if (sSum == 0.0f)
+                        continue;
+
+                    float div = velDivAtCell(i, j);
+
+                    if (particleRestDensity > 0.0f)
+                    {
+                        float compression = particleDensity[idxC(i, j)] - particleRestDensity;
+                        if (compression > 0.0f)
+                            div -= driftCompensationK * compression;
+                    }
+
+                    float p = -div / sSum;
+                    p *= overRelaxation;
+
+                    pressures[idxC(i, j)] += cp * p;
+
+                    velocitiesX[idxX(i, j)]     -= sLeft   * p;
+                    velocitiesX[idxX(i + 1, j)] += sRight  * p;
+                    velocitiesY[idxY(i, j)]     -= sBottom * p;
+                    velocitiesY[idxY(i, j + 1)] += sTop    * p;
                 }
-
-                float p = -div / sSum;
-                p *= overRelaxation;
-
-                pressures[idxC(i, j)] += cp * p;
-
-                //apply correction to the 4 surrounding faces
-                velocitiesX[idxX(i, j)]     -= sLeft   * p;
-                velocitiesX[idxX(i + 1, j)] += sRight  * p;
-                velocitiesY[idxY(i, j)]     -= sBottom * p;
-                velocitiesY[idxY(i, j + 1)] += sTop    * p;
             }
         }
     }
 
-    const float maxVel = 10.0f * cellSize / dt; // ~10 cells/frame ceiling
+    const float maxVel = 10.0f * cellSize / dt;
     for (auto& v : velocitiesX) v = std::clamp(v, -maxVel, maxVel);
     for (auto& v : velocitiesY) v = std::clamp(v, -maxVel, maxVel);
 }
