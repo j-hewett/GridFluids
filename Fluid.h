@@ -42,7 +42,6 @@ private:
     float cellSize;
     std::vector<float> s; //float, used in arithmetic during pressure solve
     std::vector<int> cellType;
-    std::vector<Particle> particles;
 
     float particleRadius = 0.005f;
     std::vector<float> pPosX;

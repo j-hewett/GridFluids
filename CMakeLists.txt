@@ -22,5 +22,6 @@ set_target_properties(GridFluids PROPERTIES
 )
 
 if(MSVC)
-    target_compile_options(GridFluids PRIVATE $<$<CONFIG:Release>:/O2 /arch:AVX2 /fp:fast /Qvec-report:2>)
+    target_compile_options(GridFluids PRIVATE $<$<CONFIG:Release>:/Z7 /O2 /arch:AVX2 /fp:fast /Qvec-report:2>)
+    target_link_options(GridFluids PRIVATE $<$<CONFIG:Release>:/DEBUG /OPT:REF /OPT:ICF>)
 endif()

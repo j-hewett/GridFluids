@@ -34,7 +34,7 @@ Fluid::Fluid(int size, int n_particles)
     particleRestDensity = 3.0f;
 
     //init spatial hash relative to particle diameter
-    float r = particles[0].radius;
+    float r = particleRadius;
     particleSpacing = 2.2f * r;
     float pInvSpacing = 1.0f / particleSpacing;
     pNumX = static_cast<int>(1.0f * pInvSpacing) + 1;
@@ -43,7 +43,7 @@ Fluid::Fluid(int size, int n_particles)
 
     numCellParticles.assign(pNumCells, 0);
     firstCellParticle.assign(pNumCells + 1, 0);
-    cellParticleIds.assign(particles.size(), 0);
+    cellParticleIds.assign(n_particles, 0);
 }
 
 void Fluid::genParticles()
@@ -55,9 +55,9 @@ void Fluid::genParticles()
     const float spacing = cellSize / std::sqrt(targetDensity);
 
     // lay particles out in a roughly square block
-    int numX = static_cast<int>(std::sqrt(static_cast<float>(particles.size())));
+    int numX = static_cast<int>(std::sqrt(static_cast<float>(n_particles)));
     if (numX < 1) numX = 1;
-    int numY = (static_cast<int>(particles.size()) + numX - 1) / numX;
+    int numY = (static_cast<int>(n_particles) + numX - 1) / numX;
 
     float blockWidth  = numX * spacing;
 
@@ -98,27 +98,43 @@ void Fluid::integrateParticles(float dt, float gravity)
 
 void Fluid::handleParticleCollisions()
 {
+    float* __restrict posX = pPosX.data();
+    float* __restrict posY = pPosY.data();
+    float* __restrict velX = pVelX.data();
+    float* __restrict velY = pVelY.data();
+
+    //separate pass so that later hot path can vectorise
+    for (int i = 0; i < n_particles; i++)
+    {
+        bool finite = std::isfinite(posX[i]) && std::isfinite(posY[i]) &&
+                      std::isfinite(velX[i]) && std::isfinite(velY[i]);
+        if (!finite)
+        {
+            posX[i] = 0.5f; posY[i] = 0.5f;
+            velX[i] = 0.0f; velY[i] = 0.0f;
+        }
+    }
+
     const float wallMinX = cellSize, wallMaxX = 1.0f - cellSize;
     const float wallMinY = cellSize, wallMaxY = 1.0f - cellSize;
+    const float minX = wallMinX + particleRadius;
+    const float maxX = wallMaxX - particleRadius;
+    const float minY = wallMinY + particleRadius;
+    const float maxY = wallMaxY - particleRadius;
 
     for (int i = 0; i < n_particles; i++)
     {
-        if (!std::isfinite(pPosX[i]) || !std::isfinite(pPosY[i]) ||
-            !std::isfinite(pVelX[i]) || !std::isfinite(pVelY[i]))
-        {
-            pPosX[i] = 0.5f; pPosY[i] = 0.5f;
-            pVelX[i] = 0.0f; pVelY[i] = 0.0f;
-        }
-        const float minX = wallMinX + particleRadius;
-        const float maxX = wallMaxX - particleRadius;
-        const float minY = wallMinY + particleRadius;
-        const float maxY = wallMaxY - particleRadius;
+        float px = posX[i];
+        bool hitX = (px < minX) || (px > maxX);
+        float clampedX = (px < minX) ? minX : (px > maxX ? maxX : px);
+        posX[i] = clampedX;
+        velX[i] = velX[i] * (1.0f - static_cast<float>(hitX));
 
-        if (pPosX[i] < minX)      { pPosX[i] = minX; pVelX[i] = 0; }
-        else if (pPosX[i] > maxX) { pPosX[i] = maxX; pVelX[i] = 0; }
-
-        if (pPosY[i] < minY)      { pPosY[i] = minY; pVelY[i] = 0; }
-        else if (pPosY[i] > maxY) { pPosY[i] = maxY; pVelY[i] = 0; }
+        float py = posY[i];
+        bool hitY = (py < minY) || (py > maxY);
+        float clampedY = (py < minY) ? minY : (py > maxY ? maxY : py);
+        posY[i] = clampedY;
+        velY[i] = velY[i] * (1.0f - static_cast<float>(hitY));
     }
 }
 
@@ -265,13 +281,17 @@ void Fluid::updateParticleDensity()
 {
     std::fill(particleDensity.begin(), particleDensity.end(), 0.0f);
 
+    const float* __restrict posX = pPosX.data();
+    const float* __restrict posY = pPosY.data();
+    float* __restrict pDens = particleDensity.data();
+
     float h = cellSize;
     float h2 = 0.5f * h;
 
     for (int i = 0; i < n_particles; i++)
     {
-        float x = std::min(std::max(pPosX[i], h), (size - 1) * h);
-        float y = std::min(std::max(pPosY[i], h), (size - 1) * h);
+        float x = std::min(std::max(posX[i], h), (size - 1) * h);
+        float y = std::min(std::max(posY[i], h), (size - 1) * h);
 
         int x0 = static_cast<int>((x - h2) / h);
         float tx = ((x - h2) - x0 * h) / h;
@@ -284,10 +304,10 @@ void Fluid::updateParticleDensity()
         float sx = 1.0f - tx;
         float sy = 1.0f - ty;
 
-        if (x0 < size && y0 < size) particleDensity[idxC(x0, y0)] += sx * sy;
-        if (x1 < size && y0 < size) particleDensity[idxC(x1, y0)] += tx * sy;
-        if (x1 < size && y1 < size) particleDensity[idxC(x1, y1)] += tx * ty;
-        if (x0 < size && y1 < size) particleDensity[idxC(x0, y1)] += sx * ty;
+        if (x0 < size && y0 < size) pDens[idxC(x0, y0)] += sx * sy;
+        if (x1 < size && y0 < size) pDens[idxC(x1, y0)] += tx * sy;
+        if (x1 < size && y1 < size) pDens[idxC(x1, y1)] += tx * ty;
+        if (x0 < size && y1 < size) pDens[idxC(x0, y1)] += sx * ty;
     }
 }
 
