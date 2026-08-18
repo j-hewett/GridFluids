@@ -62,7 +62,7 @@ public:
 private:
     void genParticles();
     void initBoundaries();
-    std::tuple<size_t, size_t> findCell(Particle p);
+    std::tuple<size_t, size_t> findCell(size_t idx);
     void updateParticleDensity();
     void clearGrid();
     void particles2Grid();

@@ -122,17 +122,15 @@ void Fluid::pushParticlesApart(int numIters)
 {
     float pInvSpacing = 1.0f / particleSpacing;
 
-    // count particles per hash cell
     std::fill(numCellParticles.begin(), numCellParticles.end(), 0);
 
-    for (const auto& p : particles)
+    for (int i = 0; i < n_particles; i++)
     {
-        int xi = clampInt(static_cast<int>(p.pos.x * pInvSpacing), 0, pNumX - 1);
-        int yi = clampInt(static_cast<int>(p.pos.y * pInvSpacing), 0, pNumY - 1);
+        int xi = clampInt(static_cast<int>(pPosX[i] * pInvSpacing), 0, pNumX - 1);
+        int yi = clampInt(static_cast<int>(pPosY[i] * pInvSpacing), 0, pNumY - 1);
         numCellParticles[xi * pNumY + yi]++;
     }
 
-    // partial sums -> firstCellParticle
     int first = 0;
     for (int i = 0; i < pNumCells; ++i)
     {
@@ -141,27 +139,24 @@ void Fluid::pushParticlesApart(int numIters)
     }
     firstCellParticle[pNumCells] = first;
 
-    // fill particle ids into cells
-    for (size_t i = 0; i < particles.size(); ++i)
+    for (int i = 0; i < n_particles; i++)
     {
-        const auto& p = particles[i];
-        int xi = clampInt(static_cast<int>(p.pos.x * pInvSpacing), 0, pNumX - 1);
-        int yi = clampInt(static_cast<int>(p.pos.y * pInvSpacing), 0, pNumY - 1);
+        int xi = clampInt(static_cast<int>(pPosX[i] * pInvSpacing), 0, pNumX - 1);
+        int yi = clampInt(static_cast<int>(pPosY[i] * pInvSpacing), 0, pNumY - 1);
         int cellNr = xi * pNumY + yi;
         firstCellParticle[cellNr]--;
-        cellParticleIds[firstCellParticle[cellNr]] = static_cast<int>(i);
+        cellParticleIds[firstCellParticle[cellNr]] = i;
     }
 
-    // push apart
-    float minDist = 2.0f * particles[0].radius;
+    float minDist = 2.0f * particleRadius;
     float minDist2 = minDist * minDist;
 
     for (int iter = 0; iter < numIters; ++iter)
     {
-        for (size_t i = 0; i < particles.size(); ++i)
+        for (int i = 0; i < n_particles; i++)
         {
-            float px = particles[i].pos.x;
-            float py = particles[i].pos.y;
+            float px = pPosX[i];
+            float py = pPosY[i];
 
             int pxi = static_cast<int>(px * pInvSpacing);
             int pyi = static_cast<int>(py * pInvSpacing);
@@ -181,11 +176,11 @@ void Fluid::pushParticlesApart(int numIters)
                     for (int j = first; j < last; ++j)
                     {
                         int id = cellParticleIds[j];
-                        if (id == static_cast<int>(i))
+                        if (id == i)
                             continue;
 
-                        float qx = particles[id].pos.x;
-                        float qy = particles[id].pos.y;
+                        float qx = pPosX[id];
+                        float qy = pPosY[id];
 
                         float dx = qx - px;
                         float dy = qy - py;
@@ -198,10 +193,10 @@ void Fluid::pushParticlesApart(int numIters)
                         dx *= s;
                         dy *= s;
 
-                        particles[i].pos.x  -= dx;
-                        particles[i].pos.y  -= dy;
-                        particles[id].pos.x += dx;
-                        particles[id].pos.y += dy;
+                        pPosX[i]  -= dx;
+                        pPosY[i]  -= dy;
+                        pPosX[id] += dx;
+                        pPosY[id] += dy;
                     }
                 }
             }
@@ -255,10 +250,10 @@ float Fluid::velDivAtCell(int cellX, int cellY)
     return gradX + gradY;
 }
 
-std::tuple<size_t, size_t> Fluid::findCell(Particle p)
+std::tuple<size_t, size_t> Fluid::findCell(size_t idx)
 {
-    int col = clampInt(static_cast<int>(p.pos.x / cellSize), 0, size - 1);
-    int row = clampInt(static_cast<int>(p.pos.y / cellSize), 0, size - 1);
+    int col = clampInt(static_cast<int>(pPosX[idx] / cellSize), 0, size - 1);
+    int row = clampInt(static_cast<int>(pPosY[idx] / cellSize), 0, size - 1);
     return {static_cast<size_t>(col), static_cast<size_t>(row)};
 }
 
