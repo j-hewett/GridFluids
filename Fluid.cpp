@@ -9,9 +9,15 @@ static inline int clampInt(int v, int lo, int hi)
 Fluid::Fluid(int size, int n_particles)
     : size(size),
     cellSize(1.0 / size),
-    particles(n_particles),
+    particles(n_particles), //for deletion
     s(size * size, 1.0f),
     cellType(size * size, AIR_CELL),
+
+    pPosX(n_particles),
+    pPosY(n_particles),
+    pVelX(n_particles),
+    pVelY(n_particles),
+
     velocitiesX((size+1) * size, 0.0),
     velocitiesY(size * (size+1), 0.0),
     preVelocitiesX((size+1) * size, 0.0f),
@@ -40,17 +46,37 @@ Fluid::Fluid(int size, int n_particles)
     cellParticleIds.assign(particles.size(), 0);
 }
 
-
 void Fluid::genParticles()
 {
     static std::default_random_engine rng(42);
-    std::uniform_real_distribution<float> dist(cellSize + 0.005f, 1.0f - cellSize - 0.005f);
+    std::uniform_real_distribution<float> jitterDist(-0.001f, 0.001f);
 
-    for (auto& p : particles)
+    const float targetDensity = std::max(particleRestDensity, 1.0f);
+    const float spacing = cellSize / std::sqrt(targetDensity);
+
+    // lay particles out in a roughly square block
+    int numX = static_cast<int>(std::sqrt(static_cast<float>(particles.size())));
+    if (numX < 1) numX = 1;
+    int numY = (static_cast<int>(particles.size()) + numX - 1) / numX;
+
+    float blockWidth  = numX * spacing;
+
+    // centered horizontally, flush against the wall nearest pos.y = cellSize
+    float startX = std::max(0.5f - blockWidth * 0.5f, cellSize + 0.005f);
+    float startY = cellSize + 0.01f;
+
+    size_t idx = 0;
+    for (int i = 0; i < numX && idx < particles.size(); ++i)
     {
-        p.pos = vec2(dist(rng), dist(rng));
-        vec2 randVel = vec2((dist(rng)-0.5)*0.5, (dist(rng)-0.5)*0.5);
-        p.vel = randVel;
+        for (int j = 0; j < numY && idx < particles.size(); ++j)
+        {
+            float jitterX = jitterDist(rng);
+            float jitterY = jitterDist(rng);
+            particles[idx].pos = vec2(startX + i * spacing + jitterX,
+                                      startY + j * spacing + jitterY);
+            particles[idx].vel = vec2(0.0f, 0.0f);
+            ++idx;
+        }
     }
 }
 
@@ -261,22 +287,6 @@ void Fluid::updateParticleDensity()
         if (x1 < size && y1 < size) particleDensity[idxC(x1, y1)] += tx * ty;
         if (x0 < size && y1 < size) particleDensity[idxC(x0, y1)] += sx * ty;
     }
-
-    // if (particleRestDensity == 0.0f)
-    // {
-    //     float sum = 0.0f;
-    //     int numFluidCells = 0;
-    //     for (int idx = 0; idx < size * size; ++idx)
-    //     {
-    //         if (cellType[idx] == FLUID_CELL)
-    //         {
-    //             sum += particleDensity[idx];
-    //             ++numFluidCells;
-    //         }
-    //     }
-    //     if (numFluidCells > 0)
-    //         particleRestDensity = sum / numFluidCells;
-    // }
 }
 
 void Fluid::clearGrid()
@@ -556,7 +566,7 @@ void Fluid::grid2Particles()
 
 std::vector<int> Fluid::simulate(float dt)
 {
-    vec2 gravity = {0.0, 1.5f};
+    vec2 gravity = {0.0, 1.0f};
     integrateParticles(dt, gravity);
     pushParticlesApart(numParticleIters);
     handleParticleCollisions();
