@@ -446,15 +446,14 @@ void Fluid::solveIncompressibility(float dt) // Gauss-Seidel
     for (auto& v : velocitiesX) v = std::clamp(v, -maxVel, maxVel);
     for (auto& v : velocitiesY) v = std::clamp(v, -maxVel, maxVel);
 }
+
 void Fluid::updateCellType()
 {
     for (int i = 0; i < size; ++i)
         for (int j = 0; j < size; ++j)
-        {
             cellType[idxC(i, j)] = (s[idxC(i, j)] == 0.0f) ? SOLID_CELL : AIR_CELL;
-        }
 
-    for (const auto& p : particles)
+    for (int p = 0; p < n_particles; p++)
     {
         auto coords = findCell(p);
         size_t col = std::get<0>(coords);
@@ -470,11 +469,11 @@ void Fluid::updateCellType()
 
 void Fluid::grid2Particles()
 {
-    for (auto& p : particles)
+    for (int i = 0; i < n_particles; i++)
     {
-        //sample u component
-        float gxU = p.pos.x / cellSize;
-        float gyU = p.pos.y / cellSize - 0.5f;
+        // sample u component
+        float gxU = pPosX[i] / cellSize;
+        float gyU = pPosY[i] / cellSize - 0.5f;
 
         int i0u = clampInt(static_cast<int>(std::floor(gxU)), 0, size);
         int j0u = clampInt(static_cast<int>(std::floor(gyU)), 0, size - 1);
@@ -497,25 +496,25 @@ void Fluid::grid2Particles()
         float wSumU = v00*w00u + v10*w10u + v01*w01u + v11*w11u;
 
         float flipU;
-        float picU = p.vel.x;
+        float picU = pVelX[i];
         if (wSumU > 0.0f)
         {
             picU = (v00*w00u*velocitiesX[idxX(i0u,j0u)] + v10*w10u*velocitiesX[idxX(i1u,j0u)]
-                          + v01*w01u*velocitiesX[idxX(i0u,j1u)] + v11*w11u*velocitiesX[idxX(i1u,j1u)]) / wSumU;
+                    + v01*w01u*velocitiesX[idxX(i0u,j1u)] + v11*w11u*velocitiesX[idxX(i1u,j1u)]) / wSumU;
 
             float oldU = (v00*w00u*preVelocitiesX[idxX(i0u,j0u)] + v10*w10u*preVelocitiesX[idxX(i1u,j0u)]
                           + v01*w01u*preVelocitiesX[idxX(i0u,j1u)] + v11*w11u*preVelocitiesX[idxX(i1u,j1u)]) / wSumU;
 
-            flipU = p.vel.x + (picU - oldU);
+            flipU = pVelX[i] + (picU - oldU);
         }
         else
         {
-            flipU = p.vel.x;
+            flipU = pVelX[i];
         }
 
-        //sample v component
-        float gxV = p.pos.x / cellSize - 0.5f;
-        float gyV = p.pos.y / cellSize;
+        // sample v component
+        float gxV = pPosX[i] / cellSize - 0.5f;
+        float gyV = pPosY[i] / cellSize;
 
         int i0v = clampInt(static_cast<int>(std::floor(gxV)), 0, size - 1);
         int j0v = clampInt(static_cast<int>(std::floor(gyV)), 0, size);
@@ -538,25 +537,24 @@ void Fluid::grid2Particles()
         float wSumV = u00*w00v + u10*w10v + u01*w01v + u11*w11v;
 
         float flipV;
-        float picV = p.vel.y;
+        float picV = pVelY[i];
         if (wSumV > 0.0f)
         {
             picV = (u00*w00v*velocitiesY[idxY(i0v,j0v)] + u10*w10v*velocitiesY[idxY(i1v,j0v)]
-                          + u01*w01v*velocitiesY[idxY(i0v,j1v)] + u11*w11v*velocitiesY[idxY(i1v,j1v)]) / wSumV;
+                    + u01*w01v*velocitiesY[idxY(i0v,j1v)] + u11*w11v*velocitiesY[idxY(i1v,j1v)]) / wSumV;
 
             float oldV = (u00*w00v*preVelocitiesY[idxY(i0v,j0v)] + u10*w10v*preVelocitiesY[idxY(i1v,j0v)]
                           + u01*w01v*preVelocitiesY[idxY(i0v,j1v)] + u11*w11v*preVelocitiesY[idxY(i1v,j1v)]) / wSumV;
 
-            flipV = p.vel.y + (picV - oldV);
+            flipV = pVelY[i] + (picV - oldV);
         }
         else
         {
-            flipV = p.vel.y;
+            flipV = pVelY[i];
         }
 
-        //blend
-        p.vel.x = flipRatio * flipU + (1.0f - flipRatio) * picU;
-        p.vel.y = flipRatio * flipV + (1.0f - flipRatio) * picV;
+        pVelX[i] = flipRatio * flipU + (1.0f - flipRatio) * picU;
+        pVelY[i] = flipRatio * flipV + (1.0f - flipRatio) * picV;
     }
 }
 
