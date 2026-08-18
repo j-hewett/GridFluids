@@ -97,24 +97,24 @@ void Fluid::handleParticleCollisions()
     const float wallMinX = cellSize, wallMaxX = 1.0f - cellSize;
     const float wallMinY = cellSize, wallMaxY = 1.0f - cellSize;
 
-    for (auto& p : particles)
+    for (int i = 0; i < n_particles; i++)
     {
-        if (!std::isfinite(p.pos.x) || !std::isfinite(p.pos.y) ||
-            !std::isfinite(p.vel.x) || !std::isfinite(p.vel.y))
+        if (!std::isfinite(pPosX[i]) || !std::isfinite(pPosY[i]) ||
+            !std::isfinite(pVelX[i]) || !std::isfinite(pVelY[i]))
         {
-            p.pos = vec2(0.5f, 0.5f);
-            p.vel = vec2(0.0f, 0.0f);
+            pPosX[i] = 0.5f; pPosY[i] = 0.5f;
+            pVelX[i] = 0.0f; pVelY[i] = 0.0f;
         }
-        const float minX = wallMinX + p.radius;
-        const float maxX = wallMaxX - p.radius;
-        const float minY = wallMinY + p.radius;
-        const float maxY = wallMaxY - p.radius;
+        const float minX = wallMinX + particleRadius;
+        const float maxX = wallMaxX - particleRadius;
+        const float minY = wallMinY + particleRadius;
+        const float maxY = wallMaxY - particleRadius;
 
-        if (p.pos.x < minX)      { p.pos.x = minX; p.vel.x = 0; }
-        else if (p.pos.x > maxX) { p.pos.x = maxX; p.vel.x = 0; }
+        if (pPosX[i] < minX)      { pPosX[i] = minX; pVelX[i] = 0; }
+        else if (pPosX[i] > maxX) { pPosX[i] = maxX; pVelX[i] = 0; }
 
-        if (p.pos.y < minY)      { p.pos.y = minY; p.vel.y = 0; }
-        else if (p.pos.y > maxY) { p.pos.y = maxY; p.vel.y = 0; }
+        if (pPosY[i] < minY)      { pPosY[i] = minY; pVelY[i] = 0; }
+        else if (pPosY[i] > maxY) { pPosY[i] = maxY; pVelY[i] = 0; }
     }
 }
 

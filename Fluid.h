@@ -92,6 +92,7 @@ private:
     std::vector<int> cellType;
     std::vector<Particle> particles;
 
+    float particleRadius = 0.005f;
     std::vector<float> pPosX;
     std::vector<float> pPosY;
     std::vector<float> pVelX;
