@@ -70,7 +70,7 @@ private:
     void updateCellType();
     void solveIncompressibility(float dt);
     void grid2Particles();
-    void integrateParticles(float dt, vec2 gravity);
+    void integrateParticles(float dt, float gravity);
     void handleParticleCollisions();
 
     bool isUFaceValid(int i, int j) const;

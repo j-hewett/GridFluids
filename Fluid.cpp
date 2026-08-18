@@ -82,12 +82,13 @@ void Fluid::genParticles()
     }
 }
 
-void Fluid::integrateParticles(float dt, vec2 gravity)
+void Fluid::integrateParticles(float dt, float gravity)
 {
-    for (auto& p : particles)
+    for (int i = 0;i<n_particles; i++)
     {
-        p.vel += gravity * dt;
-        p.pos += p.vel * dt;
+        pVelY[i] += gravity * dt;
+        pPosX[i] += pVelX[i] * dt;
+        pPosY[i] += pVelY[i] * dt;
     }
 }
 
@@ -568,7 +569,7 @@ void Fluid::grid2Particles()
 
 std::vector<int> Fluid::simulate(float dt)
 {
-    vec2 gravity = {0.0, 1.0f};
+    float gravity = 1.0f;
     integrateParticles(dt, gravity);
     pushParticlesApart(numParticleIters);
     handleParticleCollisions();
