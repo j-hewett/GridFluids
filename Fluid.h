@@ -71,5 +71,5 @@ private:
     static constexpr float overRelaxation = 1.9f;
     static constexpr float density = 1000.0f;
     static constexpr float driftCompensationK = 1.0f;
-    float flipRatio = 0.95f;
+    float flipRatio = 0.50f;
 };

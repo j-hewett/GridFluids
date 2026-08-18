@@ -53,7 +53,7 @@ void Fluid::genParticles()
 
     const float targetDensity = std::max(particleRestDensity, 1.0f);
     const float spacing = cellSize / std::sqrt(targetDensity);
-
+    particleSpacing = spacing;
     // lay particles out in a roughly square block
     int numX = static_cast<int>(std::sqrt(static_cast<float>(n_particles)));
     if (numX < 1) numX = 1;
@@ -168,7 +168,7 @@ void Fluid::pushParticlesApart(int numIters)
         cellParticleIds[firstCellParticle[cellNr]] = i;
     }
 
-    float minDist = 2.0f * particleRadius;
+    float minDist = 0.9f * particleSpacing;
     float minDist2 = minDist * minDist;
 
     for (int iter = 0; iter < numIters; ++iter)
