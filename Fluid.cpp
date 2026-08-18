@@ -264,10 +264,10 @@ void Fluid::updateParticleDensity()
     float h = cellSize;
     float h2 = 0.5f * h;
 
-    for (const auto& p : particles)
+    for (int i = 0; i < n_particles; i++)
     {
-        float x = std::min(std::max(p.pos.x, h), (size - 1) * h);
-        float y = std::min(std::max(p.pos.y, h), (size - 1) * h);
+        float x = std::min(std::max(pPosX[i], h), (size - 1) * h);
+        float y = std::min(std::max(pPosY[i], h), (size - 1) * h);
 
         int x0 = static_cast<int>((x - h2) / h);
         float tx = ((x - h2) - x0 * h) / h;
