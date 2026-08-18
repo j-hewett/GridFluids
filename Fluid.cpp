@@ -7,7 +7,8 @@ static inline int clampInt(int v, int lo, int hi)
 }
 
 Fluid::Fluid(int size, int n_particles)
-    : size(size),
+    :   n_particles(n_particles),
+    size(size),
     cellSize(1.0 / size),
     particles(n_particles), //for deletion
     s(size * size, 1.0f),
@@ -66,15 +67,16 @@ void Fluid::genParticles()
     float startY = cellSize + 0.01f;
 
     size_t idx = 0;
-    for (int i = 0; i < numX && idx < particles.size(); ++i)
+    for (int i = 0; i < numX && idx < n_particles; ++i)
     {
-        for (int j = 0; j < numY && idx < particles.size(); ++j)
+        for (int j = 0; j < numY && idx < n_particles; ++j)
         {
             float jitterX = jitterDist(rng);
             float jitterY = jitterDist(rng);
-            particles[idx].pos = vec2(startX + i * spacing + jitterX,
-                                      startY + j * spacing + jitterY);
-            particles[idx].vel = vec2(0.0f, 0.0f);
+            pPosX[idx] = startX + i * spacing + jitterX;
+            pPosY[idx] = startY + j * spacing + jitterY;
+            pVelX[idx] = 0.0f;
+            pVelY[idx] = 0.0f;
             ++idx;
         }
     }

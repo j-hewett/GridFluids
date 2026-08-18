@@ -85,6 +85,7 @@ private:
     int idxC(int i, int j) const { return i + size*j; }
 
 private:
+    int n_particles;
     int size;
     float cellSize;
     std::vector<float> s; //float, used in arithmetic during pressure solve
